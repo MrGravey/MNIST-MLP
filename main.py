@@ -181,7 +181,7 @@ for epoch in range(MAX_EPOCH):
 
     # Write data-set accuracy
     print(str(epoch) + ", " + str(test_acc) + ", " + str(train_acc))
-    acc_file.write(str(epoch) + "," + str(test_acc) + "," + str(train_acc))
+    acc_file.write(str(epoch) + "," + str(test_acc) + "," + str(train_acc) + "\n")
 
     # Loop through each example
     for ex in range(0, len(input_values)):
@@ -218,7 +218,7 @@ train_acc = accuracyFunction(labels, input_values, input_weights, hidden_weights
 
 # Write data-set accuracy
 print(str(MAX_EPOCH) + ", " + str(test_acc) + ", " + str(train_acc))
-acc_file.write(str(MAX_EPOCH) + "," + str(test_acc) + "," + str(train_acc))
+acc_file.write(str(MAX_EPOCH) + "," + str(test_acc) + "," + str(train_acc) + "\n")
 
 confusion = confusionFunction(test_labels, test_values, input_weights, hidden_weights)
 np.savetxt("confusion.csv", confusion, fmt="%d", delimiter=",")
