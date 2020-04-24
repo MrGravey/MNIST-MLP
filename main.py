@@ -171,7 +171,7 @@ print("pre-processing done!")
 acc_file = open("accuracy.csv", "w")
 
 print("epoch, test_data, train_data")
-acc_file.write("epoch,test_data,train_data")
+acc_file.write("epoch,test_data,train_data\n")
 # MLP Training
 for epoch in range(MAX_EPOCH):
 
