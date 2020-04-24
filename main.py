@@ -2,11 +2,12 @@ import numpy as np
 import csv
 import math
 
-NUM_HIDDEN = 25
+NUM_HIDDEN = 100
 NUM_OUTPUT = 10
 LEARN_RATE = 0.1
 MOMENTUM = 0.9
 RAND_SEED = 21
+MAX_EPOCH = 50
 
 
 def generateWeights(num_vectors: int, num_inputs: int):
@@ -127,28 +128,63 @@ def accuracyFunction(lables, input_values, input_weights, hidden_weights):
     return correct / total
 
 
+def confusionFunction(lables, input_values, input_weights, hidden_weights):
+    confusion = np.zeros((10, 10))
+
+    for ex in range(0, len(input_values)):
+        target = lables[0][ex]
+
+        # Generate hidden values
+        hidden_values = sigmoid(np.atleast_2d(np.dot(input_weights, input_values[ex])))
+
+        # Add hidden bias
+        hidden_values = np.c_[1, hidden_values]
+
+        # Generate output values
+        output_values = sigmoid(np.atleast_2d(np.dot(hidden_weights, hidden_values.T)))
+
+        guess = np.argmax(output_values)
+        confusion[target][guess] += 1
+
+    return confusion
+
+
 # Convert sigmoid function to NumPy ufunc.
 sigmoid = np.frompyfunc(sigmoidFunction, 1, 1)
 
+# Pre-process test data
 test_data = getData("mnist_test.csv")
-l = test_data[0]
-v = test_data[1]
+test_labels = test_data[0]
+test_values = test_data[1]
 
+# Pre-process train data
 train_data = getData("mnist_train.csv")
 labels = train_data[0]
 input_values = train_data[1]
 
+# Generate weights
 input_weights = generateWeights(NUM_HIDDEN, len(input_values[0]))
 hidden_weights = generateWeights(NUM_OUTPUT, NUM_HIDDEN + 1)
 
 print("pre-processing done!")
 
-print(accuracyFunction(l, v, input_weights, hidden_weights))
+acc_file = open("accuracy.csv", "w")
 
-for epoch in range(0, 60):
+print("epoch, test_data, train_data")
+acc_file.write("epoch,test_data,train_data")
+# MLP Training
+for epoch in range(MAX_EPOCH):
+
+    # Get data-set accuracy
+    test_acc = accuracyFunction(test_labels, test_values, input_weights, hidden_weights)
+    train_acc = accuracyFunction(labels, input_values, input_weights, hidden_weights)
+
+    # Write data-set accuracy
+    print(str(epoch) + ", " + str(test_acc) + ", " + str(train_acc))
+    acc_file.write(str(epoch) + "," + str(test_acc) + "," + str(train_acc))
+
     # Loop through each example
     for ex in range(0, len(input_values)):
-
         # Generate targets
         targets = generateTargets(labels[0][ex])
 
@@ -176,4 +212,13 @@ for epoch in range(0, 60):
             errorHiddenTerm, np.atleast_2d(input_values[ex])
         )
 
-    print(accuracyFunction(l, v, input_weights, hidden_weights))
+# Get data-set accuracy
+test_acc = accuracyFunction(test_labels, test_values, input_weights, hidden_weights)
+train_acc = accuracyFunction(labels, input_values, input_weights, hidden_weights)
+
+# Write data-set accuracy
+print(str(MAX_EPOCH) + ", " + str(test_acc) + ", " + str(train_acc))
+acc_file.write(str(MAX_EPOCH) + "," + str(test_acc) + "," + str(train_acc))
+
+confusion = confusionFunction(test_labels, test_values, input_weights, hidden_weights)
+np.savetxt("confusion.csv", confusion, fmt="%d", delimiter=",")
