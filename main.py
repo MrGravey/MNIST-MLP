@@ -2,12 +2,16 @@ import numpy as np
 import csv
 import math
 
+# Modifiable Variables
+TRAIN_EXAMPLE_PERCENT = 1
 NUM_HIDDEN = 100
-NUM_OUTPUT = 10
 LEARN_RATE = 0.1
 MOMENTUM = 0.9
-RAND_SEED = 21
 MAX_EPOCH = 50
+RAND_SEED = 21
+
+# Non-Modifiable
+NUM_OUTPUT = 10
 
 
 def generateWeights(num_vectors: int, num_inputs: int):
@@ -38,19 +42,31 @@ def generateTargets(label: int):
     return targets
 
 
-def getData(file_name: str):
+def getData(file_name: str, set_percent):
+    if set_percent > 1 or set_percent <= 0:
+        raise ValueError("set_percent is not 0 < n <= 1")
+
     with open(file_name, "r") as mnist_csv:
         reader = csv.reader(mnist_csv)
         header = list(next(reader))
         matrix = np.array(list(reader)).astype(int)
 
-        # Create target vector
-        targets = np.atleast_2d(matrix[:, 0])
+        # Randomly shuffle data
+        order = np.arange(matrix.shape[0])
+        np.random.shuffle(order)
+
+        # Get number of wanted sets from matrix
+        num_sets = int(set_percent * matrix.shape[0])
+
+        # Create label vector
+        labels = np.atleast_2d(matrix[order, 0])
+        labels = labels[:, :num_sets]
 
         # Create matrix of input vectors
-        inputs = matrix[:, 1:] / 255
+        inputs = matrix[order, 1:] / 255
+        inputs = inputs[:num_sets]
 
-    return [targets, inputs]
+    return [labels, inputs]
 
 
 def sigmoidFunction(x):
@@ -153,12 +169,12 @@ def confusionFunction(labels, input_values):
 sigmoid = np.frompyfunc(sigmoidFunction, 1, 1)
 
 # Pre-process test data
-test_data = getData("mnist_test.csv")
+test_data = getData("mnist_test.csv", 1)
 test_labels = test_data[0]
 test_values = test_data[1]
 
 # Pre-process train data
-train_data = getData("mnist_train.csv")
+train_data = getData("mnist_train.csv", TRAIN_EXAMPLE_PERCENT)
 input_labels = train_data[0]
 input_values = train_data[1]
 
