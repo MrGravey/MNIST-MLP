@@ -50,13 +50,7 @@ def getData(file_name: str):
         # Create matrix of input vectors
         inputs = matrix[:, 1:] / 255
 
-        # Create bias vector
-        biases = np.ones((1, len(inputs))).T
-
-        # Add bias vector to matrix of input vectors
-        all_inputs = np.c_[biases, inputs]
-
-    return [targets, all_inputs]
+    return [targets, inputs]
 
 
 def sigmoidFunction(x):
@@ -103,24 +97,27 @@ def hiddenErrorFunction(h, e):
     return a
 
 
-def accuracyFunction(lables, input_values, input_weights, hidden_weights):
+def accuracyFunction(labels, input_values):
     total = 0
     correct = 0
-    for ex in range(0, len(input_values)):
-        target = lables[0][ex]
+    for ex in range(len(input_values)):
+        label = labels[0][ex]
 
         # Generate hidden values
-        hidden_values = sigmoid(np.atleast_2d(np.dot(input_weights, input_values[ex])))
-
-        # Add hidden bias
-        hidden_values = np.c_[1, hidden_values]
+        hidden_values = sigmoid(
+            np.atleast_2d(
+                np.dot(input_weights, input_values[ex]) + input_bias_weights.T
+            )
+        )
 
         # Generate output values
-        output_values = sigmoid(np.atleast_2d(np.dot(hidden_weights, hidden_values.T)))
+        output_values = sigmoid(
+            np.atleast_2d(np.dot(hidden_weights, hidden_values.T) + hidden_bias_weights)
+        )
 
         guess = np.argmax(output_values)
 
-        if guess == target:
+        if guess == label:
             correct += 1
 
         total += 1
@@ -128,23 +125,26 @@ def accuracyFunction(lables, input_values, input_weights, hidden_weights):
     return correct / total
 
 
-def confusionFunction(lables, input_values, input_weights, hidden_weights):
+def confusionFunction(labels, input_values):
     confusion = np.zeros((10, 10))
 
     for ex in range(0, len(input_values)):
-        target = lables[0][ex]
+        label = labels[0][ex]
 
         # Generate hidden values
-        hidden_values = sigmoid(np.atleast_2d(np.dot(input_weights, input_values[ex])))
-
-        # Add hidden bias
-        hidden_values = np.c_[1, hidden_values]
+        hidden_values = sigmoid(
+            np.atleast_2d(
+                np.dot(input_weights, input_values[ex]) + input_bias_weights.T
+            )
+        )
 
         # Generate output values
-        output_values = sigmoid(np.atleast_2d(np.dot(hidden_weights, hidden_values.T)))
+        output_values = sigmoid(
+            np.atleast_2d(np.dot(hidden_weights, hidden_values.T) + hidden_bias_weights)
+        )
 
         guess = np.argmax(output_values)
-        confusion[target][guess] += 1
+        confusion[label][guess] += 1
 
     return confusion
 
@@ -159,12 +159,14 @@ test_values = test_data[1]
 
 # Pre-process train data
 train_data = getData("mnist_train.csv")
-labels = train_data[0]
+input_labels = train_data[0]
 input_values = train_data[1]
 
 # Generate weights
+input_bias_weights = generateWeights(NUM_HIDDEN, 1)
 input_weights = generateWeights(NUM_HIDDEN, len(input_values[0]))
-hidden_weights = generateWeights(NUM_OUTPUT, NUM_HIDDEN + 1)
+hidden_bias_weights = generateWeights(NUM_OUTPUT, 1)
+hidden_weights = generateWeights(NUM_OUTPUT, NUM_HIDDEN)
 
 print("pre-processing done!")
 
@@ -172,53 +174,60 @@ acc_file = open("accuracy.csv", "w")
 
 print("epoch, test_data, train_data")
 acc_file.write("epoch,test_data,train_data\n")
+
 # MLP Training
 for epoch in range(MAX_EPOCH):
 
     # Get data-set accuracy
-    test_acc = accuracyFunction(test_labels, test_values, input_weights, hidden_weights)
-    train_acc = accuracyFunction(labels, input_values, input_weights, hidden_weights)
+    test_acc = accuracyFunction(test_labels, test_values)
+    train_acc = accuracyFunction(input_labels, input_values)
 
     # Write data-set accuracy
     print(str(epoch) + ", " + str(test_acc) + ", " + str(train_acc))
     acc_file.write(str(epoch) + "," + str(test_acc) + "," + str(train_acc) + "\n")
 
     # Loop through each example
-    for ex in range(0, len(input_values)):
+    for ex in range(len(input_values)):
         # Generate targets
-        targets = generateTargets(labels[0][ex])
+        targets = generateTargets(input_labels[0][ex])
 
         # Generate hidden values
-        hidden_values = sigmoid(np.atleast_2d(np.dot(input_weights, input_values[ex])))
-
-        # Add hidden bias
-        hidden_values = np.c_[1, hidden_values]
+        hidden_values = sigmoid(
+            np.atleast_2d(
+                np.dot(input_weights, input_values[ex]) + input_bias_weights.T
+            )
+        )
 
         # Generate output values
-        output_values = sigmoid(np.atleast_2d(np.dot(hidden_weights, hidden_values.T)))
+        output_values = sigmoid(
+            np.atleast_2d(np.dot(hidden_weights, hidden_values.T) + hidden_bias_weights)
+        )
 
         # Calculate error terms
         errorOutputTerm = outputErrorFunction(output_values.T, targets)
+
         errorHiddenTerm = hiddenErrorFunction(
-            np.atleast_2d(hidden_values[:, 1:].T),
-            np.dot(hidden_weights.T[1:], errorOutputTerm.T),
+            hidden_values, np.dot(errorOutputTerm, hidden_weights)
         )
 
         # Update weights
         hidden_weights = hidden_weights + LEARN_RATE * np.dot(
             errorOutputTerm.T, hidden_values
         )
+        hidden_bias_weights = hidden_bias_weights + LEARN_RATE * errorOutputTerm.T
+
         input_weights = input_weights + LEARN_RATE * np.dot(
-            errorHiddenTerm, np.atleast_2d(input_values[ex])
+            errorHiddenTerm.T, np.atleast_2d(input_values[ex].T)
         )
+        input_bias_weights = input_bias_weights + LEARN_RATE * errorHiddenTerm.T
 
 # Get data-set accuracy
-test_acc = accuracyFunction(test_labels, test_values, input_weights, hidden_weights)
-train_acc = accuracyFunction(labels, input_values, input_weights, hidden_weights)
+test_acc = accuracyFunction(test_labels, test_values)
+train_acc = accuracyFunction(input_labels, input_values)
 
 # Write data-set accuracy
 print(str(MAX_EPOCH) + ", " + str(test_acc) + ", " + str(train_acc))
 acc_file.write(str(MAX_EPOCH) + "," + str(test_acc) + "," + str(train_acc) + "\n")
 
-confusion = confusionFunction(test_labels, test_values, input_weights, hidden_weights)
+confusion = confusionFunction(test_labels, test_values)
 np.savetxt("confusion.csv", confusion, fmt="%d", delimiter=",")
