@@ -3,6 +3,7 @@ import csv
 import math
 
 # Modifiable Variables
+TRAIN_EXAMPLE_PERCENT = 1
 NUM_HIDDEN = 100
 LEARN_RATE = 0.1
 MOMENTUM = 0.9
@@ -41,7 +42,10 @@ def generateTargets(label: int):
     return targets
 
 
-def getData(file_name: str):
+def getData(file_name: str, set_percent):
+    if set_percent > 1 or set_percent <= 0:
+        raise ValueError("set_percent is not 0 < n <= 1")
+
     with open(file_name, "r") as mnist_csv:
         reader = csv.reader(mnist_csv)
         header = list(next(reader))
@@ -51,11 +55,16 @@ def getData(file_name: str):
         order = np.arange(matrix.shape[0])
         np.random.shuffle(order)
 
+        # Get number of wanted sets from matrix
+        num_sets = int(set_percent * matrix.shape[0])
+
         # Create label vector
         labels = np.atleast_2d(matrix[order, 0])
+        labels = labels[:, :num_sets]
 
         # Create matrix of input vectors
         inputs = matrix[order, 1:] / 255
+        inputs = inputs[:num_sets]
 
     return [labels, inputs]
 
@@ -160,12 +169,12 @@ def confusionFunction(labels, input_values):
 sigmoid = np.frompyfunc(sigmoidFunction, 1, 1)
 
 # Pre-process test data
-test_data = getData("mnist_test.csv")
+test_data = getData("mnist_test.csv", 1)
 test_labels = test_data[0]
 test_values = test_data[1]
 
 # Pre-process train data
-train_data = getData("mnist_train.csv")
+train_data = getData("mnist_train.csv", TRAIN_EXAMPLE_PERCENT)
 input_labels = train_data[0]
 input_values = train_data[1]
 
