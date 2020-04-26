@@ -2,12 +2,15 @@ import numpy as np
 import csv
 import math
 
+# Modifiable Variables
 NUM_HIDDEN = 100
-NUM_OUTPUT = 10
 LEARN_RATE = 0.1
 MOMENTUM = 0.9
-RAND_SEED = 21
 MAX_EPOCH = 50
+RAND_SEED = 21
+
+# Non-Modifiable
+NUM_OUTPUT = 10
 
 
 def generateWeights(num_vectors: int, num_inputs: int):
@@ -44,13 +47,17 @@ def getData(file_name: str):
         header = list(next(reader))
         matrix = np.array(list(reader)).astype(int)
 
-        # Create target vector
-        targets = np.atleast_2d(matrix[:, 0])
+        # Randomly shuffle data
+        order = np.arange(matrix.shape[0])
+        np.random.shuffle(order)
+
+        # Create label vector
+        labels = np.atleast_2d(matrix[order, 0])
 
         # Create matrix of input vectors
-        inputs = matrix[:, 1:] / 255
+        inputs = matrix[order, 1:] / 255
 
-    return [targets, inputs]
+    return [labels, inputs]
 
 
 def sigmoidFunction(x):
