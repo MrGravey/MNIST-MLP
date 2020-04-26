@@ -8,5 +8,11 @@ Files used and provided from https://www.kaggle.com/oddrationale/mnist-in-csv/da
 
 ### Running the Program
 
+Install requirements
+
+`pip3 install -r requirements.txt`
+
+Run program
+
  `python3 main.py`
  
